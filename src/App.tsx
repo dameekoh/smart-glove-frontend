@@ -32,9 +32,11 @@ export default function App() {
   }, [messages, text]);
 
   // Polling effect for Arduino data
+  // Polling effect for Arduino data
   useEffect(() => {
     let lastTimestamp: number | null = null;
     let lastMessageContent: string | null = null;
+    let lastInterpretation: string | null = null;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -59,8 +61,11 @@ export default function App() {
               ]);
               lastMessageContent = newMessageContent;
 
-              // If we have an interpretation, only add it if it's new
-              if (data.interpretation) {
+              // Add interpretation message if it exists and is new
+              if (
+                data.interpretation &&
+                data.interpretation !== lastInterpretation
+              ) {
                 setMessages((prev) => [
                   ...prev,
                   {
@@ -70,6 +75,7 @@ export default function App() {
                     rawWords: data.rawWords,
                   },
                 ]);
+                lastInterpretation = data.interpretation;
               }
 
               lastTimestamp = currentTimestamp;
@@ -303,9 +309,17 @@ export default function App() {
           <div key={index} className='flex justify-center mb-4'>
             <div className='bg-purple-100 px-4 py-2 rounded-xl text-sm text-purple-800 max-w-[80%]'>
               <div className='font-semibold'>{message.content}</div>
-              {message.rawWords && (
+              {message.rawWords && message.rawWords.length > 0 && (
                 <div className='text-xs text-purple-600 mt-1'>
-                  Gestures: {message.rawWords.join(' → ')}
+                  <span className='font-medium'>Words from gestures: </span>
+                  {message.rawWords.map((word, idx) => (
+                    <span
+                      key={idx}
+                      className='inline-block bg-purple-200 px-2 py-1 rounded mr-2 mb-1'
+                    >
+                      {word}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
