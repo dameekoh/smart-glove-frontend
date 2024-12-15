@@ -1,65 +1,70 @@
 import React from 'react';
 
-const MicrophoneIcon = (props) => (
-  <svg
-    xmlns='http://www.w3.org/2000/svg'
-    width='1em'
-    height='1em'
-    viewBox='0 0 32 32'
-    {...props}
-  >
-    <path
-      fill='currentColor'
-      d='M23 14v3a7 7 0 0 1-14 0v-3H7v3a9 9 0 0 0 8 8.94V28h-4v2h10v-2h-4v-2.06A9 9 0 0 0 25 17v-3Z'
-    />
-    <path
-      fill='currentColor'
-      d='M16 22a5 5 0 0 0 5-5V7a5 5 0 0 0-10 0v10a5 5 0 0 0 5 5'
-    />
-  </svg>
-);
+function MicrophoneIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns='http://www.w3.org/2000/svg'
+      width='1em'
+      height='1em'
+      viewBox='0 0 32 32'
+      {...props}
+    >
+      <path
+        fill='currentColor'
+        d='M23 14v3a7 7 0 0 1-14 0v-3H7v3a9 9 0 0 0 8 8.94V28h-4v2h10v-2h-4v-2.06A9 9 0 0 0 25 17v-3Z'
+      />
+      <path
+        fill='currentColor'
+        d='M16 22a5 5 0 0 0 5-5V7a5 5 0 0 0-10 0v10a5 5 0 0 0 5 5'
+      />
+    </svg>
+  );
+}
 
-const StopIcon = (props) => (
-  <svg
-    xmlns='http://www.w3.org/2000/svg'
-    width='1em'
-    height='1em'
-    viewBox='0 0 32 32'
-    {...props}
-  >
-    <path
-      fill='currentColor'
-      d='M24 6H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2'
-    />
-  </svg>
-);
+function StopIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns='http://www.w3.org/2000/svg'
+      width='1em'
+      height='1em'
+      viewBox='0 0 32 32'
+      {...props}
+    >
+      <path
+        fill='currentColor'
+        d='M24 6H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2'
+      />
+    </svg>
+  );
+}
 
-const RecordingButton = () => {
-  const [isRecording, setIsRecording] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+interface RecordingButtonProps {
+  isRecording: boolean;
+  isLoading: boolean;
+  onToggleRecording: () => void;
+}
 
-  const toggleRecording = () => {
-    if (!isLoading) {
-      setIsRecording(!isRecording);
-    }
-  };
-
+export function RecordingButton({
+  isRecording,
+  isLoading,
+  onToggleRecording,
+}: RecordingButtonProps) {
   return (
     <div className='fixed bottom-4 left-1/2 transform -translate-x-1/2'>
       <button
         type='button'
-        className={`relative p-8 rounded-full bg-gray-100
-          shadow-[inset_-12px_-12px_24px_#ffffff,inset_12px_12px_24px_#d1d1d1]
-          hover:shadow-[inset_-8px_-8px_16px_#ffffff,inset_8px_8px_16px_#d1d1d1]
-          active:shadow-[inset_-4px_-4px_8px_#ffffff,inset_4px_4px_8px_#d1d1d1]
-          transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50
-          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={toggleRecording}
+        className={`relative p-8 rounded-full bg-gray-100 
+          shadow-inner transition-all duration-300 focus:outline-none focus:ring-4 
+          focus:ring-blue-300 focus:ring-opacity-50 
+          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+          ${!isLoading ? 'hover:shadow-lg active:shadow-md' : ''}
+          `}
+        onClick={onToggleRecording}
         disabled={isLoading}
       >
         {isRecording ? (
           <>
-            <StopIcon className='h-16 w-16 relative z-10 text-red-500' />
+            <StopIcon className='h-16 w-16 text-red-500 relative z-10' />
             <span className='absolute inset-0 rounded-full animate-ping bg-red-400 opacity-75' />
             <span className='absolute inset-0 rounded-full animate-pulse opacity-50' />
           </>
@@ -69,6 +74,4 @@ const RecordingButton = () => {
       </button>
     </div>
   );
-};
-
-export default RecordingButton;
+}
