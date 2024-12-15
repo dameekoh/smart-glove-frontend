@@ -1,5 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Store the latest sensor data
+let latestSensorData: boolean[] | null = null;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -16,6 +19,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Array.isArray(data) &&
         data.every((item) => typeof item === 'boolean')
       ) {
+        // Store the latest data
+        latestSensorData = data;
+
         return res.status(200).json({
           success: true,
           message: 'Data received',
@@ -36,7 +42,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res
-    .status(405)
-    .json({ success: false, message: 'Method not allowed' });
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      success: true,
+      sensorData: latestSensorData || [false, false, false, false, false],
+      timestamp: new Date(),
+    });
+  }
+
+  return res.status(405).json({
+    success: false,
+    message: 'Method not allowed',
+  });
 }
