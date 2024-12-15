@@ -30,9 +30,10 @@ export default function App() {
     scrollToBottom();
   }, [messages, text]);
 
-  // Arduino SSE Connection
-  // In your App.tsx, replace the SSE effect with this:
+  // polling
   useEffect(() => {
+    let lastTimestamp: number | null = null;
+
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(
@@ -41,22 +42,37 @@ export default function App() {
         const data = await response.json();
 
         if (data.success && data.sensorData) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: 'arduino',
-              content: data.sensorData,
-              timestamp: new Date(),
-            },
-          ]);
+          // Only add message if timestamp is different
+          const currentTimestamp = Date.now();
+          if (!lastTimestamp || currentTimestamp - lastTimestamp >= 2900) {
+            // Slightly less than poll interval
+            setMessages((prev) => [
+              ...prev,
+              {
+                type: 'arduino',
+                content: data.sensorData,
+                timestamp: new Date(),
+              },
+            ]);
+            lastTimestamp = currentTimestamp;
+          }
+          setIsConnected(true);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setIsConnected(false);
       }
-    }, 3000); // Poll every second
+    }, 3000);
 
     return () => clearInterval(pollInterval);
   }, []);
+
+  // keep only last 50 messages
+  useEffect(() => {
+    if (messages.length > 50) {
+      setMessages((prev) => prev.slice(-50));
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (isNative) {
