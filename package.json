@@ -13,6 +13,7 @@
     "@capacitor/android": "^6.2.0",
     "@capacitor/cli": "^6.2.0",
     "@capacitor/core": "^6.2.0",
+    "@vercel/kv": "^3.0.0",
     "@vercel/node": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

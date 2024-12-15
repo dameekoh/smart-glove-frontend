@@ -1,7 +1,8 @@
+// api/sse.ts
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { kv } from '@vercel/kv';
 
 let clients = new Set<VercelResponse>();
-let sensorData = [false, false, false, false, false]; // Initial sensor state
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
@@ -11,11 +12,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Array.isArray(data) &&
         data.every((item) => typeof item === 'boolean')
       ) {
-        sensorData = data;
+        // Store data in KV storage
+        await kv.set('sensorData', data);
+
         // Notify all connected clients
         clients.forEach((client) => {
-          client.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
+          client.write(`data: ${JSON.stringify({ sensorData: data })}\n\n`);
         });
+
         return res.status(200).json({ success: true, message: 'Data updated' });
       } else {
         return res
@@ -33,16 +37,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
 
-    // Send initial data
-    res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
+    try {
+      // Get data from KV storage
+      const sensorData = (await kv.get('sensorData')) || [
+        false,
+        false,
+        false,
+        false,
+        false,
+      ];
 
-    // Add client to Set
-    clients.add(res);
+      // Send initial data
+      res.write(`data: ${JSON.stringify({ sensorData })}\n\n`);
 
-    // Remove client when connection closes
-    req.on('close', () => {
-      clients.delete(res);
-    });
+      // Add client to Set
+      clients.add(res);
+
+      // Remove client when connection closes
+      req.on('close', () => {
+        clients.delete(res);
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).end();
+    }
   } else {
     res.status(405).json({ success: false, message: 'Method not allowed' });
   }

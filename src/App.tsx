@@ -31,66 +31,31 @@ export default function App() {
   }, [messages, text]);
 
   // Arduino SSE Connection
+  // In your App.tsx, replace the SSE effect with this:
   useEffect(() => {
-    let eventSource: EventSource | null = null;
-
-    const connectSSE = () => {
+    const pollInterval = setInterval(async () => {
       try {
-        eventSource = new EventSource('https://smart-glove.vercel.app/api/sse');
+        const response = await fetch(
+          'https://smart-glove.vercel.app/api/receive-data'
+        );
+        const data = await response.json();
 
-        eventSource.onopen = () => {
-          setIsConnected(true);
+        if (data.success && data.sensorData) {
           setMessages((prev) => [
             ...prev,
             {
-              type: 'system',
-              content: 'Connected to Arduino',
+              type: 'arduino',
+              content: data.sensorData,
               timestamp: new Date(),
             },
           ]);
-        };
-
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.sensorData) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  type: 'arduino',
-                  content: data.sensorData,
-                  timestamp: new Date(),
-                },
-              ]);
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE data:', e);
-          }
-        };
-
-        eventSource.onerror = () => {
-          setIsConnected(false);
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: 'system',
-              content: 'Connection lost. Retrying...',
-              timestamp: new Date(),
-            },
-          ]);
-          eventSource?.close();
-          setTimeout(connectSSE, 5000);
-        };
+        }
       } catch (error) {
-        setIsConnected(false);
+        console.error('Error fetching data:', error);
       }
-    };
+    }, 3000); // Poll every second
 
-    connectSSE();
-
-    return () => {
-      eventSource?.close();
-    };
+    return () => clearInterval(pollInterval);
   }, []);
 
   useEffect(() => {
