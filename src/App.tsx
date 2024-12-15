@@ -32,7 +32,6 @@ export default function App() {
   }, [messages, text]);
 
   // Polling effect for Arduino data
-  // Polling effect for Arduino data
   useEffect(() => {
     let lastTimestamp: number | null = null;
     let lastMessageContent: string | null = null;
@@ -307,8 +306,12 @@ export default function App() {
       case 'interpretation':
         return (
           <div key={index} className='flex justify-center mb-4'>
-            <div className='bg-purple-100 px-4 py-2 rounded-xl text-sm text-purple-800 max-w-[80%]'>
-              <div className='font-semibold'>{message.content}</div>
+            <div className='bg-purple-100 px-4 py-2 rounded-xl text-sm text-purple-800 max-w-[60%]'>
+              <div className='font-semibold'>
+                {typeof message.content === 'string'
+                  ? message.content
+                  : JSON.stringify(message.content)}
+              </div>
               {message.rawWords && message.rawWords.length > 0 && (
                 <div className='text-xs text-purple-600 mt-1'>
                   <span className='font-medium'>Words from gestures: </span>
