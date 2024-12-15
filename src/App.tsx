@@ -3,14 +3,21 @@ import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { RecordingButton } from './components/RecordingButton';
 
+interface Message {
+  type: 'voice' | 'arduino' | 'system';
+  content: string | boolean[];
+  timestamp: Date;
+}
+
 export default function App() {
   const isNative = Capacitor.isNativePlatform();
 
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,13 +30,73 @@ export default function App() {
     scrollToBottom();
   }, [messages, text]);
 
+  // Arduino SSE Connection
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('https://smart-glove.vercel.app/api/sse');
+
+        eventSource.onopen = () => {
+          setIsConnected(true);
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: 'system',
+              content: 'Connected to Arduino',
+              timestamp: new Date(),
+            },
+          ]);
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.sensorData) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  type: 'arduino',
+                  content: data.sensorData,
+                  timestamp: new Date(),
+                },
+              ]);
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data:', e);
+          }
+        };
+
+        eventSource.onerror = () => {
+          setIsConnected(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: 'system',
+              content: 'Connection lost. Retrying...',
+              timestamp: new Date(),
+            },
+          ]);
+          eventSource?.close();
+          setTimeout(connectSSE, 5000);
+        };
+      } catch (error) {
+        setIsConnected(false);
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      eventSource?.close();
+    };
+  }, []);
+
   useEffect(() => {
     if (isNative) {
       const setupListeners = async () => {
-        // First remove all listeners to start fresh
         await SpeechRecognition.removeAllListeners();
-
-        // Add a listener for listening state changes
         await SpeechRecognition.addListener('listeningState', (state: any) => {
           if (state.status === 'stopped') {
             setIsRecording(false);
@@ -39,7 +106,6 @@ export default function App() {
       };
 
       setupListeners();
-
       return () => {
         SpeechRecognition.removeAllListeners();
       };
@@ -59,11 +125,8 @@ export default function App() {
         }
 
         await SpeechRecognition.requestPermissions();
-
-        // Remove any existing listeners for a clean start
         await SpeechRecognition.removeAllListeners();
 
-        // Add back the listening state listener
         await SpeechRecognition.addListener('listeningState', (state: any) => {
           if (state.status === 'stopped') {
             setIsRecording(false);
@@ -71,7 +134,6 @@ export default function App() {
           }
         });
 
-        // Add partial results listener
         await SpeechRecognition.addListener('partialResults', (result: any) => {
           if (result && result.matches && result.matches[0]) {
             setText(result.matches[0]);
@@ -87,7 +149,6 @@ export default function App() {
         });
       } else {
         const WebSpeechRecognition =
-          // @ts-ignore
           window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (WebSpeechRecognition) {
@@ -115,7 +176,6 @@ export default function App() {
         }
       }
 
-      // If we got here successfully, we're now recording
       setIsRecording(true);
     } catch (err: any) {
       setError(
@@ -130,11 +190,8 @@ export default function App() {
   const stopListening = useCallback(async () => {
     try {
       if (isNative) {
-        // If no recognized text, just stop the recognition
         if (!text.trim()) {
           await SpeechRecognition.stop();
-          // After stopping, give the plugin time to fire 'stopped' event
-          // If not fired, manually reset after a delay
           setTimeout(() => {
             setIsRecording(false);
             setIsLoading(false);
@@ -142,25 +199,25 @@ export default function App() {
           return;
         }
 
-        // We have recognized text, add it to messages
         const currentText = text.trim();
-        setMessages((prev) => [...prev, currentText]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: 'voice',
+            content: currentText,
+            timestamp: new Date(),
+          },
+        ]);
         setText('');
 
-        // Stop recognition now
         await SpeechRecognition.stop();
 
-        // Wait a little for the 'listeningState' event to fire.
-        // If it doesn't fire, fallback to manually resetting states.
         setTimeout(() => {
           if (isRecording) {
             setIsRecording(false);
             setIsLoading(false);
           }
         }, 500);
-
-        // DO NOT remove all listeners before the event fires.
-        // If you want, you can remove them after confirming 'stopped'.
       } else {
         if (recognitionRef.current) {
           if (!text.trim()) {
@@ -171,7 +228,14 @@ export default function App() {
           }
 
           const currentText = text.trim();
-          setMessages((prev) => [...prev, currentText]);
+          setMessages((prev) => [
+            ...prev,
+            {
+              type: 'voice',
+              content: currentText,
+              timestamp: new Date(),
+            },
+          ]);
           setText('');
           recognitionRef.current.stop();
           setIsRecording(false);
@@ -195,26 +259,76 @@ export default function App() {
     }
   }, [isRecording, isLoading, startListening, stopListening]);
 
+  const renderMessage = (message: Message, index: number) => {
+    switch (message.type) {
+      case 'voice':
+        return (
+          <div key={index} className='flex justify-start mb-4'>
+            <div className='max-w-[60%] rounded-xl bg-gray-200 p-3 text-gray-800'>
+              {message.content as string}
+              <div className='text-xs text-gray-500 mt-1'>
+                {message.timestamp.toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'arduino':
+        return (
+          <div key={index} className='flex justify-end mb-4'>
+            <div className='max-w-[60%] bg-blue-100 rounded-xl p-3'>
+              <div className='flex flex-wrap gap-2'>
+                {(message.content as boolean[]).map((value, idx) => (
+                  <span
+                    key={idx}
+                    className={`px-2 py-1 rounded ${
+                      value
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-300 text-gray-700'
+                    }`}
+                  >
+                    Sensor {idx + 1}: {value ? 'ON' : 'OFF'}
+                  </span>
+                ))}
+              </div>
+              <div className='text-xs text-gray-500 mt-1'>
+                {message.timestamp.toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'system':
+        return (
+          <div key={index} className='flex justify-center mb-4'>
+            <div className='bg-gray-200 px-3 py-1 rounded-full text-sm text-gray-600'>
+              {message.content as string}
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className='flex flex-col min-h-screen w-screen'>
-      <h1 className='text-center mt-4 text-2xl font-semibold text-neutral-100'>
-        Skibidi Sigma
-      </h1>
+      <div className='flex items-center justify-between p-4 border-b bg-white'>
+        <h1 className='text-2xl font-semibold text-gray-800'>Skibidi Sigma</h1>
+        <div
+          className={`w-3 h-3 rounded-full ${
+            isConnected ? 'bg-green-500' : 'bg-red-500'
+          }`}
+        />
+      </div>
 
-      <div className='flex flex-col mt-4 space-y-2 flex-1 overflow-y-auto rounded-lg bg-neutral-100 p-4'>
-        <div className='flex flex-col space-y-2'>
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className='max-w-[60%] rounded-xl bg-gray-200 p-3 text-gray-800'
-            >
-              {msg}
-            </div>
-          ))}
+      <div className='flex-1 overflow-y-auto bg-gray-50 p-4'>
+        <div className='flex flex-col space-y-2 max-w-3xl mx-auto'>
+          {messages.map((msg, idx) => renderMessage(msg, idx))}
 
           {isRecording && text.trim().length > 0 && (
-            <div className='max-w-[60%] rounded-xl bg-green-200 p-3 text-gray-800'>
-              {text}
+            <div className='flex justify-start mb-4'>
+              <div className='max-w-[60%] rounded-xl bg-green-200 p-3 text-gray-800'>
+                {text}
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
