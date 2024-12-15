@@ -280,7 +280,7 @@ export default function App() {
 
       case 'arduino':
         return (
-          <div key={index} className='flex justify-end mb-4'>
+          <div key={index} className='flex justify-end mb-12'>
             <div className='max-w-[60%] bg-blue-100 rounded-xl p-3'>
               <div className='flex flex-wrap gap-2'>
                 {(message.content as boolean[]).map((value, idx) => (
@@ -305,7 +305,7 @@ export default function App() {
 
       case 'interpretation':
         return (
-          <div key={index} className='flex justify-center mb-4'>
+          <div key={index} className='flex justify-center'>
             <div className='bg-purple-100 px-4 py-2 rounded-xl text-sm text-purple-800 max-w-[60%]'>
               <div className='font-semibold'>
                 {typeof message.content === 'string'
@@ -341,7 +341,7 @@ export default function App() {
   };
 
   return (
-    <div className='flex flex-col min-h-screen w-screen'>
+    <div className='flex flex-col min-h-screen w-screen bg-gray-50'>
       <div className='flex items-center justify-between p-4 border-b bg-white'>
         <h1 className='text-2xl font-semibold text-gray-800'>Smart Glove</h1>
         <div
@@ -367,7 +367,7 @@ export default function App() {
       </div>
 
       {error && <p className='text-red-600 text-center mt-2'>Error: {error}</p>}
-
+      <div className='mb-40' />
       <RecordingButton
         isRecording={isRecording}
         isLoading={isLoading}
