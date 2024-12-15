@@ -111,24 +111,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         latestSensorData = data;
         const isEndOfSentence =
           JSON.stringify(data) ===
-          JSON.stringify([false, true, true, true, true]);
+          JSON.stringify([false, false, false, false, true]);
 
         if (isEndOfSentence && currentSequence.length > 0) {
-          const { interpretation, rawWords } = await interpretGestures(
-            currentSequence
+          // Remove the end marker from sequence if it was added
+          const sequenceToInterpret = currentSequence.filter(
+            (gesture) =>
+              JSON.stringify(gesture) !==
+              JSON.stringify([false, false, false, false, true])
           );
-          currentSequence = [];
 
-          return res.status(200).json({
-            success: true,
-            message: 'Sequence completed',
-            sensorData: data,
-            interpretation,
-            rawWords,
-            isEndOfSentence: true,
-            timestamp: new Date(),
-          });
-        } else if (!isEndOfSentence) {
+          if (sequenceToInterpret.length > 0) {
+            const { interpretation, rawWords } = await interpretGestures(
+              sequenceToInterpret
+            );
+            currentSequence = []; // Reset for new sequence
+
+            return res.status(200).json({
+              success: true,
+              message: 'Sequence completed',
+              sensorData: data,
+              interpretation,
+              rawWords,
+              isEndOfSentence: true,
+              timestamp: new Date(),
+            });
+          }
+
+          // If we only had the end marker, reset sequence
+          currentSequence = [];
+        } else {
+          // Add to current sequence if it's not an end marker
           currentSequence.push(data);
         }
 
