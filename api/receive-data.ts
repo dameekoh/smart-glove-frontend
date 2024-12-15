@@ -158,6 +158,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       sensorData: latestSensorData || [false, false, false, false, false],
+      interpretation:
+        currentSequence.length > 0
+          ? await interpretGestures(currentSequence)
+          : null,
+      isEndOfSentence: false,
       timestamp: new Date(),
     });
   }
