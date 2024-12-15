@@ -54,7 +54,7 @@ const GESTURE_MEANINGS: Record<string, string> = {
 
   // Special controls
   '[false,false,false,false,false]': 'space',
-  '[false,false,false,false,true]': 'end of sentence',
+  '[false,false,false,false,true]': '.',
 
   // Emergency
   '[true,true,true,true,true]': 'help',
