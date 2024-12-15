@@ -16,7 +16,6 @@ const GESTURE_MEANINGS: Record<string, string> = {
   '[false,true,false,false,false]': 'where',
   '[false,false,true,false,false]': 'when',
   '[false,false,false,true,false]': 'who',
-  '[false,false,false,false,true]': 'how',
 
   // Verbs
   '[true,true,false,false,false]': 'go',
@@ -55,7 +54,7 @@ const GESTURE_MEANINGS: Record<string, string> = {
 
   // Special controls
   '[false,false,false,false,false]': 'space',
-  '[false,true,true,true,true]': 'end of sentence',
+  '[false,false,false,false,true]': 'end of sentence',
 
   // Emergency
   '[true,true,true,true,true]': 'help',
