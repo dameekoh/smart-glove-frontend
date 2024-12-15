@@ -301,7 +301,7 @@ export default function App() {
         />
       </div>
 
-      <div className='flex-1 overflow-y-auto bg-gray-50 p-4'>
+      <div className='flex-1 overflow-y-auto p-4 pb-48'>
         <div className='flex flex-col space-y-2 max-w-3xl mx-auto'>
           {messages.map((msg, idx) => renderMessage(msg, idx))}
 
