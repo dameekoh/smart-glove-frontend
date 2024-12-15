@@ -6,12 +6,11 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(204).end(); // Handle CORS preflight
+    res.status(204).end();
     return;
   }
 
   if (req.method === 'POST') {
-    // Get the array from the request body
     const data = req.body;
 
     if (
@@ -19,8 +18,6 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       data.every((item) => typeof item === 'boolean')
     ) {
       console.log('Received boolean array:', data);
-
-      // Example: Process or store the data
       const trueCount = data.filter(Boolean).length;
 
       res.status(200).json({
