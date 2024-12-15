@@ -4,9 +4,10 @@ import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { RecordingButton } from './components/RecordingButton';
 
 interface Message {
-  type: 'voice' | 'arduino' | 'system';
+  type: 'voice' | 'arduino' | 'system' | 'interpretation';
   content: string | boolean[];
   timestamp: Date;
+  rawWords?: string[];
 }
 
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
     scrollToBottom();
   }, [messages, text]);
 
-  // polling
+  // Polling effect for Arduino data
   useEffect(() => {
     let lastTimestamp: number | null = null;
 
@@ -41,11 +42,10 @@ export default function App() {
         );
         const data = await response.json();
 
-        if (data.success && data.sensorData) {
-          // Only add message if timestamp is different
+        if (data.success) {
           const currentTimestamp = Date.now();
           if (!lastTimestamp || currentTimestamp - lastTimestamp >= 2900) {
-            // Slightly less than poll interval
+            // Add sensor data message
             setMessages((prev) => [
               ...prev,
               {
@@ -54,6 +54,20 @@ export default function App() {
                 timestamp: new Date(),
               },
             ]);
+
+            // If we have an interpretation, add it
+            if (data.interpretation) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  type: 'interpretation',
+                  content: data.interpretation,
+                  timestamp: new Date(),
+                  rawWords: data.rawWords,
+                },
+              ]);
+            }
+
             lastTimestamp = currentTimestamp;
           }
           setIsConnected(true);
@@ -67,7 +81,7 @@ export default function App() {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // keep only last 50 messages
+  // Keep only last 50 messages
   useEffect(() => {
     if (messages.length > 50) {
       setMessages((prev) => prev.slice(-50));
@@ -279,6 +293,20 @@ export default function App() {
           </div>
         );
 
+      case 'interpretation':
+        return (
+          <div key={index} className='flex justify-center mb-4'>
+            <div className='bg-purple-100 px-4 py-2 rounded-xl text-sm text-purple-800 max-w-[80%]'>
+              <div className='font-semibold'>{message.content}</div>
+              {message.rawWords && (
+                <div className='text-xs text-purple-600 mt-1'>
+                  Gestures: {message.rawWords.join(' → ')}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case 'system':
         return (
           <div key={index} className='flex justify-center mb-4'>
@@ -293,7 +321,7 @@ export default function App() {
   return (
     <div className='flex flex-col min-h-screen w-screen'>
       <div className='flex items-center justify-between p-4 border-b bg-white'>
-        <h1 className='text-2xl font-semibold text-gray-800'>Skibidi Sigma</h1>
+        <h1 className='text-2xl font-semibold text-gray-800'>Smart Glove</h1>
         <div
           className={`w-3 h-3 rounded-full ${
             isConnected ? 'bg-green-500' : 'bg-red-500'
@@ -301,7 +329,7 @@ export default function App() {
         />
       </div>
 
-      <div className='flex-1 overflow-y-auto p-4 pb-48'>
+      <div className='flex-1 overflow-y-auto bg-gray-50 p-4'>
         <div className='flex flex-col space-y-2 max-w-3xl mx-auto'>
           {messages.map((msg, idx) => renderMessage(msg, idx))}
 
