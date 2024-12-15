@@ -80,7 +80,7 @@ async function interpretGestures(sequences: boolean[][]) {
           )}". Reply with only one complete, grammatically correct sentence.`,
         },
       ],
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-40-mini',
     });
 
     return {
