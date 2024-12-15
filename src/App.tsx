@@ -34,6 +34,7 @@ export default function App() {
   // Polling effect for Arduino data
   useEffect(() => {
     let lastTimestamp: number | null = null;
+    let lastMessageContent: string | null = null;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -45,32 +46,36 @@ export default function App() {
         if (data.success) {
           const currentTimestamp = Date.now();
           if (!lastTimestamp || currentTimestamp - lastTimestamp >= 2900) {
-            // Add sensor data message
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: 'arduino',
-                content: data.sensorData,
-                timestamp: new Date(),
-              },
-            ]);
-
-            // If we have an interpretation, add it
-            if (data.interpretation) {
+            // Check if the new data is different from the last message
+            const newMessageContent = JSON.stringify(data.sensorData);
+            if (newMessageContent !== lastMessageContent) {
               setMessages((prev) => [
                 ...prev,
                 {
-                  type: 'interpretation',
-                  content: data.interpretation,
+                  type: 'arduino',
+                  content: data.sensorData,
                   timestamp: new Date(),
-                  rawWords: data.rawWords,
                 },
               ]);
-            }
+              lastMessageContent = newMessageContent;
 
-            lastTimestamp = currentTimestamp;
+              // If we have an interpretation, only add it if it's new
+              if (data.interpretation) {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    type: 'interpretation',
+                    content: data.interpretation,
+                    timestamp: new Date(),
+                    rawWords: data.rawWords,
+                  },
+                ]);
+              }
+
+              lastTimestamp = currentTimestamp;
+            }
+            setIsConnected(true);
           }
-          setIsConnected(true);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
